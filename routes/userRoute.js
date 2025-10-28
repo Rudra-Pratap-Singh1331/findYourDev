@@ -117,26 +117,26 @@ userRouter.get("/connections", userAuthMiddleware, async (req, res) => {
       $or: [
         {
           toUserId: req.user._id,
-          status: "Accepted",
+          status: { $nin: ["Accepted", "Rejected"] },
         },
         {
           fromUserId: req.user._id,
-          status: "Accepted",
+          status: { $nin: ["Accepted", "Rejected"] },
         },
       ],
     })
-      .populate("fromUserId", ["fullName", "age", "gender", "techStack"])
-      .populate("toUserId", ["fullName", "age", "gender", "techStack"]);
+      .populate("fromUserId", ["fullName", "photoUrl"])
+      .populate("toUserId", ["fullName", "photoUrl"]);
 
-    const data = loggedInUserConnections.map((users) => {
-      if (users.fromUserId._id.toString() === req.user._id.toString())
-        return users.toUserId;
-      return users.fromUserId;
-    });
+    // const data = loggedInUserConnections.map((users) => {
+    //   if (users.fromUserId._id.toString() === req.user._id.toString())
+    //     return users.toUserId;
+    //   return users.fromUserId;
+    // });
 
     res.status(200).json({
       status: true,
-      data: data,
+      data: loggedInUserConnections,
     });
   } catch (error) {
     res.status(500).json({
@@ -262,6 +262,5 @@ userRouter.get("/friends", userAuthMiddleware, async (req, res) => {
     });
   }
 });
-
 
 export default userRouter;

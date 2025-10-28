@@ -8,7 +8,6 @@ const socketConnection = (server) => {
       credentials: true,
     },
   });
-
   io.on("connection", (socket) => {
     //handle events here
 
