@@ -13,6 +13,7 @@ import postRouter from "./routes/postRoute.js";
 import chatRouter from "./routes/chatRoute.js";
 import emailRouter from "./routes/emailServicesRoute.js";
 import passRouter from "./routes/passRoute.js";
+import hackathonRouter from "./routes/hackathonRoute.js";
 const app = express();
 
 dotenv.config();
@@ -40,7 +41,10 @@ app.use("/chat", chatRouter);
 
 app.use("/emailservice", emailRouter);
 
-//feed of user that fetches all the user for the homepage of the user currently logged in !!
+app.use("/passwordservice", passRouter);
+
+app.use("/hackathons", hackathonRouter);
+
 app.get("/users", async (req, res) => {
   //FINDING THE DB USER HAVING NAME PROVIDED IN REQ BODY
   // const users = await User.find({fullName:req.body.fullName})
@@ -59,8 +63,6 @@ app.get("/users", async (req, res) => {
   const users = await User.find({});
   res.send(users);
 });
-
-app.use("/passwordservice", passRouter);
 
 const server = http.createServer(app);
 socketConnection(server);

@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import Chat from "../models/ChatModel.js";
+import GroupChat from "../models/GroupChatModel.js";
 
 const socketConnection = (server) => {
   const io = new Server(server, {
@@ -40,6 +41,42 @@ const socketConnection = (server) => {
     socket.on("notifyTheUser", ({ _id, userId }) => {
       socket.to(`RoomId-${_id}`).emit("incomingMessage", { userId });
     });
+
+    socket.on("joinGroupChat", ({ chatId }) => {
+      socket.join(`GroupRoomId-${chatId}`);
+    });
+
+    socket.on(
+      "sendGroupMessage",
+      async ({ roomId, text, time, fromUserId, senderName }) => {
+        try {
+          let groupChat = await GroupChat.findOne({ roomId });
+
+          if (!groupChat) {
+            groupChat = new GroupChat({
+              roomId,
+              messages: [],
+            });
+          }
+          groupChat.messages.push({
+            text,
+            time,
+            fromUserId,
+            senderName,
+          });
+
+          await groupChat.save();
+          socket.to(`GroupRoomId-${roomId}`).emit("newGroupMessageIncoming", {
+            text,
+            time,
+            fromUserId,
+            senderName,
+          });
+        } catch (err) {
+          console.error("Error saving group message:", err);
+        }
+      }
+    );
   });
 };
 
