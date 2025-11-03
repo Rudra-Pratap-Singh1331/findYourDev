@@ -20,7 +20,7 @@ dotenv.config();
 
 app.use(
   cors({
-    origin: ["https://find-your-dev-frontend.vercel.app"],
+    origin: "https://find-your-dev-frontend.vercel.app",
     credentials: true,
   })
 );
