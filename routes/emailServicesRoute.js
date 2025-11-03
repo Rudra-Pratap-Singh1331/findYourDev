@@ -60,7 +60,7 @@ emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
 </html>
 `,
     });
-    console.log(result);
+   
     res.status(200).json({ success: true, message: "OTP sent" });
   } catch (error) {
     res.status(500).json({ success: false, error: error });

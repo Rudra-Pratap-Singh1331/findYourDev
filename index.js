@@ -46,19 +46,7 @@ app.use("/passwordservice", passRouter);
 app.use("/hackathons", hackathonRouter);
 
 app.get("/users", async (req, res) => {
-  //FINDING THE DB USER HAVING NAME PROVIDED IN REQ BODY
-  // const users = await User.find({fullName:req.body.fullName})
 
-  //FINDING ALL THE USER
-
-  // const users = await User.find({});
-
-  //finding by mongodb id
-
-  // const users = await User.findById({})
-
-  // if(users.length==0) return res.send("no user found")
-  // res.send(users)
 
   const users = await User.find({});
   res.send(users);
@@ -68,12 +56,12 @@ const server = http.createServer(app);
 socketConnection(server);
 connectDB()
   .then(() => {
-    console.log("DB connected Successfully!");
+
     server.listen(process.env.PORT, () => {
-      console.log("server is running!!");
+    
       //we are doing this because we are not using cjs but if we use cjs we can call the connectDB function insed the configDB and reuire the module above like require("./config/dbConfig") we have already studeied that NodeJS wrap each module into IIFE and will execute the moment the reuire will be readed the fucntion will get execute and db will get connected
     });
   })
   .catch((error) => {
-    console.log(error);
+    
   });

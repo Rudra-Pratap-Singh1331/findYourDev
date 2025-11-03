@@ -15,7 +15,7 @@ const socketConnection = (server) => {
     //Join one to one chat
     socket.on("joinChat", ({ userId, _id }) => {
       const roomId = [userId, _id].sort().join("@");
-      console.log(roomId);
+   
       socket.join(roomId);
     });
 
@@ -73,7 +73,6 @@ const socketConnection = (server) => {
             senderName,
           });
         } catch (err) {
-          console.error("Error saving group message:", err);
         }
       }
     );

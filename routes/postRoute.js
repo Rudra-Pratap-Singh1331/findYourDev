@@ -16,9 +16,7 @@ postRouter.post(
     try {
       const { _id } = req.user;
       const { postContent, postVisibility } = req.body;
-      console.log("✅ Route hit successfully!");
-      console.log("➡️ req.body:", req.body);
-      console.log("➡️ req.file:", req.file);
+   
       let photoUrlCloudinary = "";
       //file upload to cloudinary and get the url
       if (req.file) {
