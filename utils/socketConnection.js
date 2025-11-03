@@ -5,7 +5,7 @@ import GroupChat from "../models/GroupChatModel.js";
 const socketConnection = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: "http://localhost:5173", // your frontend origin
+      origin: "https://find-your-dev-frontend.vercel.app", // your frontend origin
       credentials: true,
     },
   });
@@ -15,7 +15,7 @@ const socketConnection = (server) => {
     //Join one to one chat
     socket.on("joinChat", ({ userId, _id }) => {
       const roomId = [userId, _id].sort().join("@");
-   
+
       socket.join(roomId);
     });
 
@@ -72,8 +72,7 @@ const socketConnection = (server) => {
             fromUserId,
             senderName,
           });
-        } catch (err) {
-        }
+        } catch (err) {}
       }
     );
   });
