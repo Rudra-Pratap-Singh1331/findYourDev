@@ -20,7 +20,7 @@ dotenv.config();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://find-your-dev-frontend.vercel.app/",
     credentials: true,
   })
 );
@@ -46,8 +46,6 @@ app.use("/passwordservice", passRouter);
 app.use("/hackathons", hackathonRouter);
 
 app.get("/users", async (req, res) => {
-
-
   const users = await User.find({});
   res.send(users);
 });
@@ -56,12 +54,8 @@ const server = http.createServer(app);
 socketConnection(server);
 connectDB()
   .then(() => {
-
     server.listen(process.env.PORT, () => {
-    
       //we are doing this because we are not using cjs but if we use cjs we can call the connectDB function insed the configDB and reuire the module above like require("./config/dbConfig") we have already studeied that NodeJS wrap each module into IIFE and will execute the moment the reuire will be readed the fucntion will get execute and db will get connected
     });
   })
-  .catch((error) => {
-    
-  });
+  .catch((error) => {});
