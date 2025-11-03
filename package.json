@@ -1,7 +1,7 @@
 {
-  "name": "devtinderbackend",
+  "name": "findYourDev",
   "version": "1.0.0",
-  "description": "This is the backend of DevTinder",
+  "description": "This is the backend of findYourDev",
   "keywords": [
     "\"backend\"",
     "\"nodejs\"",
