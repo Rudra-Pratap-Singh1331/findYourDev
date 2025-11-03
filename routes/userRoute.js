@@ -31,6 +31,10 @@ userRouter.delete("/delete", userAuthMiddleware, async (req, res) => {
     }
     res.cookie("token", null, {
       expires: new Date(Date.now()),
+
+      httpOnly: true,
+      secure: true, // must be true for https
+      sameSite: "none", // crucial for cross-site cookies
     });
 
     return res.status(200).json({

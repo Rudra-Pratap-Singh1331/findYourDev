@@ -21,7 +21,12 @@ authRouter.post("/login", async (req, res) => {
 
       const authToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY);
 
-      res.cookie("token", authToken);
+      res.cookie("token", authToken),
+        {
+          httpOnly: true,
+          secure: true, // must be true for https
+          sameSite: "none", // crucial for cross-site cookies
+        };
       res.json(user);
     } else {
       res.status(400).json({ status: false, message: "password invalid" });
@@ -89,6 +94,9 @@ authRouter.post("/signup", async (req, res) => {
 authRouter.post("/logout", (req, res) => {
   res.cookie("token", null, {
     expires: new Date(Date.now()),
+    httpOnly: true,
+    secure: true, // must be true for https
+    sameSite: "none", // crucial for cross-site cookies
   });
   res.json({
     success: true,
