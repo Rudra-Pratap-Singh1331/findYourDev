@@ -3,7 +3,7 @@ import userAuthMiddleware from "../middlewares/userAuthMiddleware.js";
 import { uploadToCloudinary } from "../Cloudinary/cloudinaryConfig.js";
 import upload from "../config/multerConfig.js";
 import Post from "../models/postModel.js";
-import PostLike from "../models/PostLikeModel.js";
+import PostLike from "../models/postLikeModel.js";
 import Comment from "../models/CommentModel.js";
 const app = express();
 const postRouter = express.Router();
@@ -16,7 +16,7 @@ postRouter.post(
     try {
       const { _id } = req.user;
       const { postContent, postVisibility } = req.body;
-   
+
       let photoUrlCloudinary = "";
       //file upload to cloudinary and get the url
       if (req.file) {
