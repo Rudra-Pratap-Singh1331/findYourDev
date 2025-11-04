@@ -1,19 +1,26 @@
 import express from "express";
 import userAuthMiddleware from "../middlewares/userAuthMiddleware.js";
-import { Resend } from "resend";
 import generateOTP from "../helper/generateOTP.js";
 import hashOTP from "../helper/hashOTP.js";
 import redis from "../utils/redisClient.js";
 import checkOTP from "../helper/checkOTP.js";
+import nodemailer from "nodemailer";
+
 const emailRouter = express.Router();
 
-const resend = new Resend(process.env.RESEND_EMAIL_SERVICES_API_KEY);
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  auth: {
+    user: process.env.BREVO_USER_EMAIL, // e.g. yourbrevoemail@gmail.com
+    pass: process.env.BREVO_API_KEY, // From Brevo Dashboard → SMTP & API
+  },
+});
 
 emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
   const { toUserEmail } = req.body;
-  console.log(toUserEmail);
-  const existingOtp = await redis.get(`otp:${toUserEmail}`);
 
+  const existingOtp = await redis.get(`otp:${toUserEmail}`);
   if (existingOtp) {
     return res.status(400).json({
       message: "OTP already sent. Please wait before requesting again.",
@@ -24,47 +31,40 @@ emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
 
   try {
     const hashed_otp = await hashOTP(verification_otp);
+    await redis.set(`otp:${toUserEmail}`, hashed_otp, { ex: 300 }); // expires in 5 min
 
-    await redis.set(`otp:${toUserEmail}`, hashed_otp, { ex: 300 });
-
-    const result = await resend.emails.send({
-      from: "onboarding@resend.dev",
+    await transporter.sendMail({
+      from: `"findYourDev's" <${process.env.BREVO_USER_EMAIL}>`,
       to: toUserEmail,
-      subject: "OTP for password Reset",
+      subject: "OTP for Password Reset",
       html: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>FindYourDev OTP</title>
-</head>
-<body style="margin:0; padding:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e2f; color: #d4d4d4;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#1e1e2f; padding: 50px 0;">
-    <tr>
-      <td align="center">
-        <table width="400px" cellpadding="0" cellspacing="0" style="background-color:#252526; border-radius: 8px; padding: 30px; text-align:center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
-          <tr>
-            <td>
-              <h1 style="color:#569cd6; margin-bottom: 10px;">FindYourDev</h1>
-              <p style="font-size:16px; color:#cccccc; margin-bottom: 20px;">Use the OTP below to reset your password. It expires in <strong>2 minutes</strong>.</p>
-              <div style="font-size: 32px; font-weight: bold; background-color: #0e639c; color: #fff; padding: 15px 0; border-radius: 6px; letter-spacing: 4px; margin-bottom: 25px;">
-                ${verification_otp}
-              </div>
-              <p style="font-size:14px; color:#888888; margin-bottom:0;">If you did not request this, please ignore this email.</p>
-            </td>
-          </tr>
+      <!DOCTYPE html>
+      <html lang="en">
+      <head><meta charset="UTF-8"><title>FindYourDev OTP</title></head>
+      <body style="margin:0;padding:0;font-family:Segoe UI, sans-serif;background-color:#f8fafc;color:#0e0e0e;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+          <tr><td align="center">
+            <table width="400" style="background-color:white;border-radius:10px;padding:25px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.1);">
+              <tr><td>
+                <h1 style="color:#0071dc;margin-bottom:10px;">findYourDev's</h1>
+                <p style="font-size:15px;color:#444;">Use the OTP below to reset your password. It expires in <strong>5 minutes</strong>.</p>
+                <div style="font-size:32px;font-weight:bold;background-color:#0071dc;color:white;padding:10px;border-radius:6px;letter-spacing:5px;margin:20px 0;">
+                  ${verification_otp}
+                </div>
+                <p style="font-size:13px;color:#666;">If you did not request this, please ignore this email.</p>
+              </td></tr>
+            </table>
+          </td></tr>
         </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`,
+      </body>
+      </html>`,
     });
 
-    res.status(200).json({ success: true, message: "OTP sent" });
+    res.status(200).json({ success: true, message: "OTP sent successfully!" });
   } catch (error) {
-    res.status(500).json({ success: false, error: error });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to send OTP", error });
   }
 });
 
