@@ -9,11 +9,10 @@ import nodemailer from "nodemailer";
 const emailRouter = express.Router();
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
+  service: "gmail",
   auth: {
-    user: process.env.BREVO_USER_EMAIL,
-    pass: process.env.BREVO_API_KEY,
+    user: process.env.GMAIL_USER_EMAIL,
+    pass: process.env.GMAIL_API_KEY,
   },
 });
 
