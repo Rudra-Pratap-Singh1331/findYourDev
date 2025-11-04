@@ -37,7 +37,7 @@ emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
     console.log("🧠 OTP stored in Redis successfully for:", toUserEmail);
 
     await transporter.sendMail({
-      from: `"FindYourDev" <${process.env.GMAIL_USER_EMAIL}>`,
+      from: `${process.env.GMAIL_USER_EMAIL}`,
       to: toUserEmail,
       subject: "OTP for Password Reset",
       html: `
