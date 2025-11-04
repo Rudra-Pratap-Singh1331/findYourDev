@@ -10,7 +10,9 @@ const authRouter = express.Router();
 authRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select(
+      "fullName techStack designation profileUpdateStatus photoUrl mobileNumber age email"
+    );
     if (!user)
       return res
         .status(400)
