@@ -1,204 +1,96 @@
-import React, { useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { addUser } from "../store/userSlice";
-import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import express from "express";
+import userAuthMiddleware from "../middlewares/userAuthMiddleware.js";
+import { Resend } from "resend";
+import generateOTP from "../helper/generateOTP.js";
+import hashOTP from "../helper/hashOTP.js";
+import redis from "../utils/redisClient.js";
+import checkOTP from "../helper/checkOTP.js";
+const emailRouter = express.Router();
 
-const OtpPage = () => {
-  const [otp, setOtp] = useState("");
-  const [status, setStatus] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [formError, setFormError] = useState([]);
-  const [otpSent, setOtpSent] = useState(false);
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const loggedInUser = useSelector((store) => store.user);
+const resend = new Resend(process.env.RESEND_EMAIL_SERVICES_API_KEY);
 
-  const fetchLoggedInUser = async () => {
-    try {
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/user/profile`,
-        {
-          withCredentials: true,
-        }
-      );
-      dispatch(addUser(data?.loggedInUser));
-    } catch (err) {
-      if (err.response?.status === 401) {
-        toast.error("Unauthorized!");
-        navigate("/login");
-      }
-    }
-  };
+emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
+  const { toUserEmail } = req.body;
+  const existingOtp = await redis.get(`otp:${toUserEmail}`);
 
-  const sendOtp = async () => {
-    try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/emailservice/send-otp`,
-        {
-          toUserEmail: loggedInUser?.email,
-        },
-        { withCredentials: true }
-      );
+  if (existingOtp) {
+    return res.status(400).json({
+      message: "OTP already sent. Please wait before requesting again.",
+    });
+  }
 
-      setOtpSent(true);
-      toast.success("OTP sent to your email!");
-    } catch (error) {
-      toast.error(
-        error?.response?.data?.message || "Oops Something went wrong!"
-      );
-    }
-  };
+  const verification_otp = generateOTP();
 
-  const handleVerify = async () => {
-    try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/emailservice/verify-otp`,
-        {
-          input_otp: otp,
-          toUserEmail: loggedInUser?.email,
-        },
-        { withCredentials: true }
-      );
+  try {
+    const hashed_otp = await hashOTP(verification_otp);
 
-      if (res?.data?.otpValid === false) {
-        toast.error(res?.data?.message);
-        navigate("/profile");
-      } else {
-        toast.success(res?.data?.message);
-        setStatus(true);
-      }
-      setOtp("");
-    } catch (error) {
-      setOtp("");
-      toast.error(
-        error?.response?.data?.message || "Oops! Something went wrong."
-      );
-    }
-  };
+    await redis.set(`otp:${toUserEmail}`, hashed_otp, { ex: 300 });
 
-  const handlePasswordSubmit = async () => {
-    setFormError([]);
-
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match!");
-      return;
-    }
-
-    try {
-      const { data } = await axios.patch(
-        `${import.meta.env.VITE_API_URL}/passwordservice/updatepassword`,
-        {
-          pass: newPassword,
-          userId: loggedInUser?._id,
-        },
-        { withCredentials: true }
-      );
-
-      if (data.success) {
-        toast.success(data.message);
-        navigate("/");
-      }
-    } catch (error) {
-      if (error.response?.data?.errors) {
-        setFormError(error.response.data.errors);
-      } else {
-        setFormError(["Something went wrong. Please try again."]);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (!loggedInUser) fetchLoggedInUser();
-  }, []);
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e1e] text-[#e5e5e5] p-4">
-      {!status ? (
-        <>
-          <h2 className="text-[#569cd6] text-2xl font-semibold mb-6">
-            {otpSent
-              ? `A verification mail has been sent to ${loggedInUser?.email}`
-              : `Click below to send a verification code at ${loggedInUser?.email}`}
-          </h2>
-
-          {!otpSent ? (
-            <button
-              onClick={sendOtp}
-              className="btn bg-[#0e639c] hover:bg-[#1177c0] text-white font-semibold px-6 py-2 rounded-md mb-4"
-            >
-              Send OTP
-            </button>
-          ) : (
-            <>
-              <div className="w-40 h-40 flex items-center justify-center mb-8">
-                <div className="w-20 h-20 rounded-full bg-[#0e639c] flex items-center justify-center text-white text-3xl animate-bounce">
-                  📧
-                </div>
+    const result = await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: toUserEmail,
+      subject: "OTP for password Reset",
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FindYourDev OTP</title>
+</head>
+<body style="margin:0; padding:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e2f; color: #d4d4d4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#1e1e2f; padding: 50px 0;">
+    <tr>
+      <td align="center">
+        <table width="400px" cellpadding="0" cellspacing="0" style="background-color:#252526; border-radius: 8px; padding: 30px; text-align:center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+          <tr>
+            <td>
+              <h1 style="color:#569cd6; margin-bottom: 10px;">FindYourDev</h1>
+              <p style="font-size:16px; color:#cccccc; margin-bottom: 20px;">Use the OTP below to reset your password. It expires in <strong>2 minutes</strong>.</p>
+              <div style="font-size: 32px; font-weight: bold; background-color: #0e639c; color: #fff; padding: 15px 0; border-radius: 6px; letter-spacing: 4px; margin-bottom: 25px;">
+                ${verification_otp}
               </div>
+              <p style="font-size:14px; color:#888888; margin-bottom:0;">If you did not request this, please ignore this email.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`,
+    });
+   
+    res.status(200).json({ success: true, message: "OTP sent" });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error });
+  }
+});
 
-              <input
-                type="text"
-                placeholder="Enter OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                maxLength={6}
-                className="input input-bordered input-primary w-48 text-center text-lg mb-4 bg-[#252526] border-[#2d2d2d] text-[#e5e5e5] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#569cd6]"
-              />
+emailRouter.post("/verify-otp", userAuthMiddleware, async (req, res) => {
+  const { input_otp, toUserEmail } = req.body;
 
-              <button
-                onClick={handleVerify}
-                className="btn bg-[#0e639c] hover:bg-[#1177c0] text-white font-semibold px-6 py-2 rounded-md"
-              >
-                Verify OTP
-              </button>
-            </>
-          )}
-        </>
-      ) : (
-        <>
-          <h2 className="text-[#569cd6] text-2xl font-semibold mb-6">
-            Set Your New Password
-          </h2>
+  try {
+    const isOTPValid = await checkOTP(input_otp, toUserEmail);
+    if (!isOTPValid) {
+      return res.status(400).json({
+        success: false,
+        otpValid: false,
+        message: "Invalid or expired OTP",
+      });
+    }
 
-          <input
-            type="password"
-            placeholder="New Password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="input input-bordered input-primary w-64 text-center text-lg mb-4 bg-[#252526] border-[#2d2d2d] text-[#e5e5e5] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#569cd6]"
-          />
+    res.status(200).json({
+      success: true,
+      otpValid: true,
+      message: "OTP verified successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while verifying OTP",
+    });
+  }
+});
 
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="input input-bordered input-primary w-64 text-center text-lg mb-4 bg-[#252526] border-[#2d2d2d] text-[#e5e5e5] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#569cd6]"
-          />
-
-          {formError.length > 0 && (
-            <div className="bg-[#3c1c1c] text-red-400 p-3 rounded-md w-72 mb-4">
-              {formError.map((err, index) => (
-                <p key={index} className="text-sm">
-                  • {err}
-                </p>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={handlePasswordSubmit}
-            className="btn bg-[#0e639c] hover:bg-[#1177c0] text-white font-semibold px-6 py-2 rounded-md"
-          >
-            Update Password
-          </button>
-        </>
-      )}
-    </div>
-  );
-};
-
-export default OtpPage;
+export default emailRouter;
