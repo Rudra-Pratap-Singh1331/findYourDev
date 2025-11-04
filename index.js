@@ -29,6 +29,10 @@ app.use(express.json());
 
 app.use(cookieParser());
 
+app.get("/ping", (req, res) => {
+  res.status(200).send("wake!");
+});
+
 app.use("/", authRouter);
 
 app.use("/user", userRouter);
