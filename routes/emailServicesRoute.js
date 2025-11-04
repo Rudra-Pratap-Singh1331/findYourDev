@@ -11,6 +11,7 @@ const resend = new Resend(process.env.RESEND_EMAIL_SERVICES_API_KEY);
 
 emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
   const { toUserEmail } = req.body;
+  console.log(toUserEmail);
   const existingOtp = await redis.get(`otp:${toUserEmail}`);
 
   if (existingOtp) {
@@ -60,7 +61,7 @@ emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
 </html>
 `,
     });
-   
+
     res.status(200).json({ success: true, message: "OTP sent" });
   } catch (error) {
     res.status(500).json({ success: false, error: error });
