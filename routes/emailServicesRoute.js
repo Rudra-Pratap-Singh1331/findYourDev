@@ -43,7 +43,7 @@ emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
       html: `
       <html>
       <body style="font-family:sans-serif;">
-        <h2>FindYourDev OTP</h2>
+        <h2>findYourDev's OTP</h2>
         <p>Your OTP (valid for 5 minutes):</p>
         <div style="font-size:24px;font-weight:bold;background:#0071dc;color:white;padding:8px;border-radius:6px;">
           ${verification_otp}
