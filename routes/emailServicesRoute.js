@@ -1,17 +1,14 @@
 import express from "express";
 import userAuthMiddleware from "../middlewares/userAuthMiddleware.js";
-import { Resend } from "resend";
 import generateOTP from "../helper/generateOTP.js";
 import hashOTP from "../helper/hashOTP.js";
 import redis from "../utils/redisClient.js";
 import checkOTP from "../helper/checkOTP.js";
+import transporter from "../utils/mailTransporter.js";
 const emailRouter = express.Router();
-
-const resend = new Resend(process.env.RESEND_EMAIL_SERVICES_API_KEY);
 
 emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
   const { toUserEmail } = req.body;
-  console.log(toUserEmail);
   const existingOtp = await redis.get(`otp:${toUserEmail}`);
 
   if (existingOtp) {
@@ -27,9 +24,9 @@ emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
 
     await redis.set(`otp:${toUserEmail}`, hashed_otp, { ex: 300 });
 
-    const result = await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to: "rudrapsingh121@gmail.com",
+    const result = await transporter.sendMail({
+      from: "findyourdevsmailservice@gmail.com",
+      to: `${toUserEmail}`,
       subject: "OTP for password Reset",
       html: `
 <!DOCTYPE html>
@@ -46,7 +43,7 @@ emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
           <tr>
             <td>
               <h1 style="color:#569cd6; margin-bottom: 10px;">FindYourDev</h1>
-              <p style="font-size:16px; color:#cccccc; margin-bottom: 20px;">Use the OTP below to reset your password. It expires in <strong>2 minutes</strong>.</p>
+              <p style="font-size:16px; color:#cccccc; margin-bottom: 20px;">Use the OTP below to reset your password. It expires in <strong>5 minutes</strong>.</p>
               <div style="font-size: 32px; font-weight: bold; background-color: #0e639c; color: #fff; padding: 15px 0; border-radius: 6px; letter-spacing: 4px; margin-bottom: 25px;">
                 ${verification_otp}
               </div>
