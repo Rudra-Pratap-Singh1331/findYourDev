@@ -4,7 +4,7 @@ import generateOTP from "../helper/generateOTP.js";
 import hashOTP from "../helper/hashOTP.js";
 import redis from "../utils/redisClient.js";
 import checkOTP from "../helper/checkOTP.js";
-import transporter from "../utils/mailTransporter.js";
+import axios from "axios";
 const emailRouter = express.Router();
 
 emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
@@ -24,11 +24,20 @@ emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
 
     await redis.set(`otp:${toUserEmail}`, hashed_otp, { ex: 300 });
 
-    const result = await transporter.sendMail({
-      from: "findyourdevsmailservice@gmail.com",
-      to: `${toUserEmail}`,
-      subject: "OTP for password Reset",
-      html: `
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: {
+          name: "FindYourDev",
+          email: process.env.EMAIL_USER,
+        },
+        to: [
+          {
+            email: toUserEmail,
+          },
+        ],
+        subject: "OTP for password Reset",
+        htmlContent: `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,12 +66,22 @@ emailRouter.post("/send-otp", userAuthMiddleware, async (req, res) => {
 </body>
 </html>
 `,
-    });
+      },
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+        },
+      },
+    );
 
     res.status(200).json({ success: true, message: "OTP sent" });
   } catch (error) {
-    console.log(error.message);
-    res.status(500).json({ success: false, error: error.message });
+    console.log("BREVO ERROR:", error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message,
+    });
   }
 });
 
