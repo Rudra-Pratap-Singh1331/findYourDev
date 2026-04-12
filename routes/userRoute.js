@@ -224,6 +224,9 @@ userRouter.get("/feed", userAuthMiddleware, async (req, res) => {
       {
         _id: { $nin: Array.from(userNotToBeShowOnTheFeed) }, //conver the Set into Array
       },
+      {
+        _id: { $ne: req.user._id }, //ye isliye jisse hamari khud ki id n ajaye thats why
+      },
     ],
   })
     .select("fullName age techStack gender designation photoUrl")
