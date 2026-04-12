@@ -42,13 +42,16 @@ postRouter.post(
         .status(500)
         .json({ success: false, message: "Failed to create post" });
     }
-  }
+  },
 );
 
 postRouter.get("/", userAuthMiddleware, async (req, res) => {
   try {
     const posts = await Post.find({
-      userId: { $ne: req.user._id },
+      $or: [
+        { postVisibility: true }, // public posts
+        { userId: req.user._id }, // apne posts although if its private
+      ],
     })
       .sort({ createdAt: -1 })
       .populate("userId", ["fullName", "photoUrl", "designation"])
@@ -62,7 +65,7 @@ postRouter.get("/", userAuthMiddleware, async (req, res) => {
       return {
         ...post,
         likedStatus: postLikeStatus.some(
-          (like) => like.postId.toString() === post._id.toString()
+          (like) => like.postId.toString() === post._id.toString(),
         ),
       };
     });
