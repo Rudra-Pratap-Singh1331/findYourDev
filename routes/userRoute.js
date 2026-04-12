@@ -84,7 +84,7 @@ userRouter.patch(
       if (req.file) {
         const result = await uploadToCloudinary(
           req.file.buffer,
-          "userProfilephoto"
+          "userProfilephoto",
         );
         photoUrlCloudinary = result.secure_url;
       }
@@ -108,7 +108,7 @@ userRouter.patch(
           {
             new: true,
             runValidators: true,
-          }
+          },
         ).select("fullName techStack designation profileUpdateStatus photoUrl"); //new true means return the updated doc
 
         res.status(200).json({ message: "updated", value: updated });
@@ -120,7 +120,7 @@ userRouter.patch(
         error: error.message,
       });
     }
-  }
+  },
 );
 
 userRouter.get("/connections", userAuthMiddleware, async (req, res) => {
@@ -183,7 +183,7 @@ userRouter.get(
         message: "error:" + error.message,
       });
     }
-  }
+  },
 );
 
 userRouter.get("/feed", userAuthMiddleware, async (req, res) => {
@@ -223,9 +223,6 @@ userRouter.get("/feed", userAuthMiddleware, async (req, res) => {
     $and: [
       {
         _id: { $nin: Array.from(userNotToBeShowOnTheFeed) }, //conver the Set into Array
-      },
-      {
-        _id: { $ne: req.user._id }, //ye isliye jisse hamari khud ki id n ajaye thats why
       },
     ],
   })
